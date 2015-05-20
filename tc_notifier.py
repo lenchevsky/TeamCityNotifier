@@ -2,13 +2,14 @@ import ConfigParser
 import sqlite3
 import requests
 import json
+import os
 import xml.etree.ElementTree as xmlModule
 from requests.auth import HTTPBasicAuth
 from pushover import init, Client
 
 
 def saveBuild(build):
-	db = sqlite3.connect('buildsdb')
+	db = sqlite3.connect(os.path.dirname(os.path.realpath(__file__))+'/buildsdb')
 	cursor = db.cursor()
 	# Create table if required
 	cursor.execute("CREATE TABLE IF NOT EXISTS BUILDS(buildId INTEGER, buildNum INTEGER, status TEXT, startDate TEXT, href TEXT, webUrl TEXT)")
@@ -22,7 +23,7 @@ def saveBuild(build):
 
 def isBuildInDB(ID):
 	result = True
-	db = sqlite3.connect('buildsdb')
+	db = sqlite3.connect(os.path.dirname(os.path.realpath(__file__))+'/buildsdb')
 	cursor = db.cursor()
 	cursor.execute('SELECT 1 FROM BUILDS WHERE buildId=?',(ID,))
 	if cursor.fetchone() == None:
@@ -42,7 +43,7 @@ def pushMessage(Devices,Message,Title=None,Priority=None,URL=None):
 
 # Parse config file
 config = ConfigParser.ConfigParser()
-config.read('settings.cfg')
+config.read(os.path.dirname(os.path.realpath(__file__))+'/settings.cfg')
 
 g_message_title = config.get('General','message_title')
 
@@ -60,6 +61,7 @@ for key in devices_key_list:
 	devices.append(Client(key, api_token=pushover_app_token))
 
 #Scrape Teamcity
+requests.packages.urllib3.disable_warnings()
 for tc_build_type in tc_build_type_ids:
 	builds = requests.get(tc_server+'/httpAuth/app/rest/buildTypes/id:'+tc_build_type+'/builds', auth=HTTPBasicAuth(tc_username, tc_password), verify=False)
 
